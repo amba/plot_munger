@@ -9,6 +9,8 @@ use Carp;
 use Data::Dumper;
 use Getopt::Long qw/:config gnu_getopt/;;
 use PDL::Graphics::Gnuplot ();
+use Scalar::Util 'looks_like_number';
+
 my $print_help;
 my $x_col;
 my $y_col;
@@ -151,7 +153,17 @@ sub apply_command {
     elsif ($cmd =~ /^(min|max)=(.*)/) {
         $cmd = $1;
         my $value = $2;
-        
+        if (not looks_like_number($value)) {
+            die "$value not a number";
+        }
+        my $mask = $z_block > $value;
+        if ($cmd eq 'max') {
+            $z_block = $z_block * (1 - $mask) + $mask * $value;
+        }
+        else {
+            $z_block = $z_block * $mask + (1 - $mask) * $value;
+        }
+            
     }
     else {
         die "unknown command $cmd";
