@@ -16,15 +16,18 @@ my $x_col;
 my $y_col;
 my $z_col;
 my @commands;
+my $output_filename;
+my $force_output_file;
+
 GetOptions("x=i" => \$x_col,
            "y=i", => \$y_col,
            "z=i", => \$z_col,
            "cmd|c=s@", => \@commands,
+           "output|o=s" => \$output_filename,
+           "force|f" => \$force_output_file,
            "help|h" => \$print_help,
     )
     or die "GetOptions";
-
-say "y_col: $y_col";
 
 sub state_usage {
     say "Usage: plot_munger.pl OPTIONS input-ascii-file.dat";
@@ -40,17 +43,20 @@ sub state_help {
   -z                          z column index (starts with 1, not 0)
   -c, --cmd                   transformation command, see below; can be provided
                               multiple times
+  -o, --output                basename for output data file
+  -f, --force                 overwrite existing files
 
  Known commands:
-  - dz/dy   : partial differentiate
-  - abs     : absolute value
-  - log     : natural logarithm
-  - log10   : base 10 logarithm
-  - min=$min: lower cutoff value 
-  - max=$max: upper cutoff value
+  - dzdy      : partial differentiate
+  - abs        : absolute value
+  - log        : natural logarithm
+  - log10      : base 10 logarithm
+  - min=$min   : lower cutoff value 
+  - max=$max   : upper cutoff value
+  - add=$value : add value
 
- Example: Calculate ln(|dz/dy|):
- plot_munger.pl -x 1 -y 2 -z 3 --cmd dz/dy --cmd abs --cmd log data.dat
+ Example: Calculate ln(|dzdy|):
+ plot_munger.pl -x 1 -y 2 -z 3 --cmd dzdy --cmd abs --cmd log data.dat
 ';
     
 }
@@ -65,7 +71,6 @@ if (not defined $x_col or not defined $y_col
     die "need x, y, and z options";
 }
 my @col_indices =($x_col, $y_col, $z_col);
-say "@col_indices";
 my %unique_test = map {$_ => 1} @col_indices;
 say (keys %unique_test);
 if (keys %unique_test != 3) {
@@ -110,22 +115,68 @@ say "datafile shape: ", $blocks->shape;
 # and same for z
 
 my @maps = dog($blocks->xchg( 0, 2 ));
-say $_->shape for @maps;
 # first dim: block, second dim: line
+
 my $x_block = $maps[$x_col-1];
 my $y_block = $maps[$y_col-1];
 my $z_block = $maps[$z_col-1];
 
-my $terminal => 'qt';
-my %terminal_options = ();
-my %plot_options = (pm3d => 'implicit map corners2color c1', surface => 0, clut => 'sepia', grid => 1);
-my $plot1 = PDL::Graphics::Gnuplot->new('qt', %terminal_options, \%plot_options);
-$plot1->splot($x_block, $y_block, $z_block);
+splot($x_block, $y_block, $z_block);
 
-($x_block, $y_block, $z_block) = apply_commands(\@commands, $x_block, $y_block, $z_block);
+($x_block, $y_block, $z_block) = apply_commands(
+    [@commands], $x_block, $y_block, $z_block
+    );
 
-my $plot2 = PDL::Graphics::Gnuplot->new('qt', %terminal_options, \%plot_options);
-$plot2->splot($x_block, $y_block, $z_block);
+splot($x_block, $y_block, $z_block);
+
+if (defined $output_filename) {
+    say "commands: @commands";
+    $output_filename .= '_' . join('_', @commands) . '.dat';
+    if (-e $output_filename and not $force_output_file) {
+        die "file $output_filename already exists";
+    }
+    warn "writing output to $output_filename\n";
+    write_output_datafile($output_filename, $x_block, $y_block, $z_block);
+    
+}
+
+sub write_output_datafile {
+    my ($filename, $x_block, $y_block, $z_block) = @_;
+    open my $fh, '>', $filename
+        or die "cannot open file $filename: $!";
+
+    print {$fh} "# x\ty\tz\n";
+    my $blocks = cat($x_block, $y_block, $z_block)->xchg(0,2);
+    say $blocks->shape;
+    my @blocks = dog $blocks;
+    say $blocks[0]->shape;
+    for my $block (@blocks) {
+        write_output_datafile_block($fh, $block);
+    }
+}
+
+sub write_output_datafile_block {
+    my ($fh, $block) = @_;
+    my @lines = dog($block);
+    LINE: for my $line (@lines) {
+        my @cols = @{unpdl $line};
+        my $line = "";
+        while (my ($idx, $col) = each (@cols) ){
+            if ($col eq 'NaN') {
+                warn "NaN detected, skipping rest of block";
+                last LINE;
+            }
+            $line .= sprintf("%.10g", $col);
+            if ($idx != $#cols) {
+                    $line .= "\t";
+            }
+        }
+        $line .= "\n";
+        print {$fh} $line;
+    }
+    # finish block
+    print {$fh} "\n";
+}
 
 
 sub apply_commands {
@@ -143,27 +194,31 @@ sub apply_command {
     if ($cmd eq 'abs' or $cmd eq 'log' or $cmd eq 'log10') {
         $z_block = $z_block->$cmd;
     }
-    elsif ($cmd eq 'dz/dy') {
+    elsif ($cmd eq 'dzdy') {
         my $diff_y = diff_along_second_dim($y_block);
         my $diff_z = diff_along_second_dim($z_block);
         $x_block = $x_block->slice(':,1:');
         $y_block = $y_block->slice(':,1:');
         $z_block = $diff_z / $diff_y;
     }
-    elsif ($cmd =~ /^(min|max)=(.*)/) {
+    elsif ($cmd =~ /^(min|max|add)=(.*)/) {
+        # value command
         $cmd = $1;
         my $value = $2;
         if (not looks_like_number($value)) {
             die "$value not a number";
         }
-        my $mask = $z_block > $value;
         if ($cmd eq 'max') {
+            my $mask = $z_block > $value;
             $z_block = $z_block * (1 - $mask) + $mask * $value;
         }
-        else {
+        elsif ($cmd eq 'min') {
+            my $mask = $z_block > $value;
             $z_block = $z_block * $mask + (1 - $mask) * $value;
         }
-            
+        elsif ($cmd eq 'add') {
+            $z_block = $z_block + $value;
+        }
     }
     else {
         die "unknown command $cmd";
@@ -178,9 +233,18 @@ sub diff_along_second_dim {
 
 
 
-
-
-
+sub splot {
+    my ($x_block, $y_block, $z_block) = @_;
+    my $terminal = 'qt';
+    my %terminal_options = ();
+    my %plot_options = (
+        pm3d => 'implicit map corners2color c1',
+        surface => 0,
+        clut => 'sepia',
+        grid => 1);
+    my $plot = PDL::Graphics::Gnuplot->new($terminal, %terminal_options, \%plot_options);
+    $plot->splot($x_block, $y_block, $z_block);
+}
 
 
 # produce 2D PDL for each block. Cat them into a 3d PDL
@@ -247,7 +311,7 @@ sub read_gnuplot_format {
         file        => { isa => 'Str'},
         );
     open my $fh, '<', $file
-            or croak "cannot open file $file: $!";
+            or die "cannot open file $file: $!";
 
     # return value is 3D PDL with following dims
     # 0st dim: column
