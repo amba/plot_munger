@@ -72,7 +72,6 @@ if (not defined $x_col or not defined $y_col
 }
 my @col_indices =($x_col, $y_col, $z_col);
 my %unique_test = map {$_ => 1} @col_indices;
-say (keys %unique_test);
 if (keys %unique_test != 3) {
     die "x,y, and z need to be different";
 }
@@ -86,7 +85,6 @@ if (not defined $filename) {
 
 my $blocks = read_gnuplot_format(file => $filename);
 # dims of $blocks PDL: cols, line_in_block, block
-say "datafile shape: ", $blocks->shape;
 
 # 3D gnuplot data file (two x values, three y value):
 # x11 y11 z11
@@ -130,7 +128,6 @@ splot($x_block, $y_block, $z_block);
 splot($x_block, $y_block, $z_block);
 
 if (defined $output_filename) {
-    say "commands: @commands";
     $output_filename .= '_' . join('_', @commands) . '.dat';
     if (-e $output_filename and not $force_output_file) {
         die "file $output_filename already exists";
@@ -147,9 +144,7 @@ sub write_output_datafile {
 
     print {$fh} "# x\ty\tz\n";
     my $blocks = cat($x_block, $y_block, $z_block)->xchg(0,2);
-    say $blocks->shape;
     my @blocks = dog $blocks;
-    say $blocks[0]->shape;
     for my $block (@blocks) {
         write_output_datafile_block($fh, $block);
     }
