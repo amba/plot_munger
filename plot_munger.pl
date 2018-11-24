@@ -13,9 +13,11 @@ my $print_help;
 my $x_col;
 my $y_col;
 my $z_col;
+my @commands;
 GetOptions("x=i" => \$x_col,
            "y=i", => \$y_col,
            "z=i", => \$z_col,
+           "cmd|c=s@", => \@commands,
            "help|h" => \$print_help,
     )
     or die "GetOptions";
@@ -28,10 +30,26 @@ sub state_usage {
 
 sub state_help {
     state_usage ();
-        say "
+        say '
  Options:
   -h, --help                  give this help screen.
-";
+  -x                          x column index (starts with 1, not 0)
+  -y                          y column index (starts with 1, not 0)
+  -z                          z column index (starts with 1, not 0)
+  -c, --cmd                   transformation command, see below; can be provided
+                              multiple times
+
+ Known commands:
+  - dz/dy   : partial differentiate
+  - abs     : absolute value
+  - log     : natural logarithm
+  - log10   : base 10 logarithm
+  - min=$min: lower cutoff value 
+  - max=$max: upper cutoff value
+
+ Example: Calculate ln(|dz/dy|):
+ plot_munger.pl -x 1 -y 2 -z 3 --cmd dz/dy --cmd abs --cmd log data.dat
+';
     
 }
 
@@ -102,13 +120,44 @@ my %plot_options = (pm3d => 'implicit map corners2color c1', surface => 0, clut 
 my $plot1 = PDL::Graphics::Gnuplot->new('qt', %terminal_options, \%plot_options);
 $plot1->splot($x_block, $y_block, $z_block);
 
-my $diff_y = diff_along_second_dim($y_block);
-my $diff_z = diff_along_second_dim($z_block);
-my $reduced_x_block = $x_block->slice(':,1:');
-my $reduced_y_block = $y_block->slice(':,1:');
+($x_block, $y_block, $z_block) = apply_commands(\@commands, $x_block, $y_block, $z_block);
+
 my $plot2 = PDL::Graphics::Gnuplot->new('qt', %terminal_options, \%plot_options);
-$plot2->splot($reduced_x_block, $reduced_y_block, $diff_z);
-$plot2->splot($reduced_x_block, $reduced_y_block, log(abs($diff_z / $diff_y)));
+$plot2->splot($x_block, $y_block, $z_block);
+
+
+sub apply_commands {
+    my ($cmds, @blocks) = @_;
+    my @commands = @{$cmds};
+    for my $cmd (@commands) {
+        @blocks = apply_command($cmd, @blocks);
+    }
+    return @blocks;
+}
+
+sub apply_command {
+    my ($cmd, $x_block, $y_block, $z_block) = @_;
+    
+    if ($cmd eq 'abs' or $cmd eq 'log' or $cmd eq 'log10') {
+        $z_block = $z_block->$cmd;
+    }
+    elsif ($cmd eq 'dz/dy') {
+        my $diff_y = diff_along_second_dim($y_block);
+        my $diff_z = diff_along_second_dim($z_block);
+        $x_block = $x_block->slice(':,1:');
+        $y_block = $y_block->slice(':,1:');
+        $z_block = $diff_z / $diff_y;
+    }
+    elsif ($cmd =~ /^(min|max)=(.*)/) {
+        $cmd = $1;
+        my $value = $2;
+        
+    }
+    else {
+        die "unknown command $cmd";
+    }
+    return ($x_block, $y_block, $z_block);
+}
 
 sub diff_along_second_dim {
     my $pdl  = shift;
