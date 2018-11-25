@@ -4,7 +4,6 @@ use warnings;
 use strict;
 
 use PDL;
-use MooseX::Params::Validate 'validated_list';
 use Carp;
 use Data::Dumper;
 use Getopt::Long qw/:config gnu_getopt/;;
@@ -83,7 +82,7 @@ if (not defined $filename) {
 }
 
 
-my $blocks = read_gnuplot_format(file => $filename);
+my $blocks = read_gnuplot_format($filename);
 # dims of $blocks PDL: cols, line_in_block, block
 
 # 3D gnuplot data file (two x values, three y value):
@@ -245,10 +244,7 @@ sub splot {
 
 # produce 2D PDL for each block. Cat them into a 3d PDL
 sub get_blocks {
-    my ( $fh ) = validated_list(
-        \@_,
-        fh          => { isa => 'FileHandle'},
-        );
+    my $fh = shift;
 
     my @blocks;
     my @rows;
@@ -302,10 +298,7 @@ sub get_blocks {
 }
 
 sub read_gnuplot_format {
-    my ( $file ) = validated_list(
-        \@_,
-        file        => { isa => 'Str'},
-        );
+    my $file = shift;
     open my $fh, '<', $file
             or die "cannot open file $file: $!";
 
@@ -313,5 +306,5 @@ sub read_gnuplot_format {
     # 0st dim: column
     # 1st dim: row (in block)
     # 2nd dim: block
-    return get_blocks( fh => $fh);
+    return get_blocks($fh);
 }
