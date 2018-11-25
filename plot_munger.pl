@@ -236,6 +236,7 @@ sub splot {
         pm3d => 'implicit map corners2color c1',
         surface => 0,
         clut => 'sepia',
+        cbtics => {format => "%g"},
         grid => 1);
     my $plot = PDL::Graphics::Gnuplot->new($terminal, %terminal_options, \%plot_options);
     $plot->splot($x_block, $y_block, $z_block);
