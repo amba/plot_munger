@@ -154,19 +154,19 @@ sub write_output_datafile_block {
     my @lines = dog($block);
     LINE: for my $line (@lines) {
         my @cols = @{unpdl $line};
-        my $line = "";
+        my $output = "";
         while (my ($idx, $col) = each (@cols) ){
             if ($col eq 'NaN') {
-                warn "NaN detected, skipping rest of block";
-                last LINE;
+                warn "NaN detected, skipping line '$line'";
+                next LINE;
             }
-            $line .= sprintf("%.10g", $col);
+            $output .= sprintf("%.10g", $col);
             if ($idx != $#cols) {
-                    $line .= "\t";
+                    $output .= "\t";
             }
         }
-        $line .= "\n";
-        print {$fh} $line;
+        $output .= "\n";
+        print {$fh} $output;
     }
     # finish block
     print {$fh} "\n";
