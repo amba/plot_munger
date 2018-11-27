@@ -11,16 +11,11 @@ use PDL::Graphics::Gnuplot ();
 use Scalar::Util 'looks_like_number';
 
 my $print_help;
-my $x_col;
-my $y_col;
-my $z_col;
 my @commands;
 my $output_filename;
 my $force_output_file;
 
-GetOptions("x=i" => \$x_col,
-           "y=i", => \$y_col,
-           "z=i", => \$z_col,
+GetOptions(
            "cmd|c=s@", => \@commands,
            "output|o=s" => \$output_filename,
            "force|f" => \$force_output_file,
@@ -29,7 +24,7 @@ GetOptions("x=i" => \$x_col,
     or die "GetOptions";
 
 sub state_usage {
-    say "Usage: plot_munger.pl OPTIONS input-ascii-file.dat";
+    say "Usage: plot_munger.pl OPTIONS input-ascii-file.dat xcol:ycol:zcol";
 }
 
 sub state_help {
@@ -37,9 +32,6 @@ sub state_help {
         say '
  Options:
   -h, --help                  give this help screen.
-  -x                          x column index (starts with 1, not 0)
-  -y                          y column index (starts with 1, not 0)
-  -z                          z column index (starts with 1, not 0)
   -c, --cmd                   transformation command, see below; can be provided
                               multiple times
   -o, --output                basename for output data file
@@ -65,20 +57,27 @@ if ($print_help) {
     exit(0);
 }
 
-if (not defined $x_col or not defined $y_col
-    or not defined $z_col) {
-    die "need x, y, and z options";
-}
-my @col_indices =($x_col, $y_col, $z_col);
-my %unique_test = map {$_ => 1} @col_indices;
-if (keys %unique_test != 3) {
-    die "x,y, and z need to be different";
-}
-
 my $filename = $ARGV[0];
 if (not defined $filename) {
     warn "Error: no input file given\nTry 'plot_munger.pl --help'\n";
     exit(1);
+}
+
+my $xyz_arg = $ARGV[1];
+if (not defined $xyz_arg) {
+    die "need xcol:ycol:zcol argument";
+}
+
+if ($xyz_arg !~ /^([0-9]+):([0-9]+):([0-9]+)/) {
+    die "$xyz_arg needs format xcol:ycol:zcol";
+}
+my ($x_col, $y_col, $z_col) = ($1, $2, $3);
+
+
+my @col_indices =($x_col, $y_col, $z_col);
+my %unique_test = map {$_ => 1} @col_indices;
+if (keys %unique_test != 3) {
+    die "x,y, and z need to be different";
 }
 
 
