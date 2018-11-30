@@ -42,6 +42,7 @@ sub state_help {
   - abs        : absolute value
   - log        : natural logarithm
   - log10      : base 10 logarithm
+  - G0         : devide by conductance quantum e**2/h
   - min=$min   : lower cutoff value 
   - max=$max   : upper cutoff value
   - add=$value : add value
@@ -193,6 +194,10 @@ sub apply_command {
         $x_block = $x_block->slice(':,1:');
         $y_block = $y_block->slice(':,1:');
         $z_block = $diff_z / $diff_y;
+    }
+    elsif ($cmd eq 'G0') {
+        my $G0 = 3.874045865410302e-05; # e**2 / h
+        $z_block = $z_block / $G0;
     }
     elsif ($cmd =~ /^(min|max|add)=(.*)/) {
         # value command
