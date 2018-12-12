@@ -15,12 +15,16 @@ my @commands;
 my $output_filename;
 my $force_output_file;
 my $palette = "bbwr";
+my $logscale;
+my $cbrange;
 
 GetOptions(
            "cmd|c=s@", => \@commands,
            "output|o=s" => \$output_filename,
     "force|f" => \$force_output_file,
+    "logscale" => \$logscale,
     "palette=s" => \$palette,
+    "cbrange=s" => \$cbrange,
     "help|h" => \$print_help,
     
     )
@@ -254,7 +258,17 @@ sub splot {
         %color_options,
         cbtics => {format => "%g"},
         grid => 1);
+
+    if ($logscale) {
+        %plot_options = (%plot_options, logscale => ['cb']);
+    }
+    if ($cbrange) {
+        my @cbrange = split /,/, $cbrange;
+        say "cbrange: [@cbrange]";
+        %plot_options = (%plot_options, cbrange => [@cbrange]); 
+    }
     my $plot = PDL::Graphics::Gnuplot->new($terminal, %terminal_options, \%plot_options);
+
     $plot->splot($x_block, $y_block, $z_block);
 }
 
