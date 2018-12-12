@@ -14,12 +14,15 @@ my $print_help;
 my @commands;
 my $output_filename;
 my $force_output_file;
+my $palette = "bbwr";
 
 GetOptions(
            "cmd|c=s@", => \@commands,
            "output|o=s" => \$output_filename,
-           "force|f" => \$force_output_file,
-           "help|h" => \$print_help,
+    "force|f" => \$force_output_file,
+    "palette=s" => \$palette,
+    "help|h" => \$print_help,
+    
     )
     or die "GetOptions";
 
@@ -235,10 +238,20 @@ sub splot {
     my ($x_block, $y_block, $z_block) = @_;
     my $terminal = 'qt';
     my %terminal_options = ();
+    my %color_options;
+    if ($palette eq 'sepia') {
+        %color_options = (clut => 'sepia');
+    }
+    elsif ($palette eq 'bbwr') {
+        %color_options = (palette => "defined (0 'black', 1 'blue', 2 'white', 3 'red')");
+    }
+    else {
+        die "unknown palette '$palette'";
+    }
     my %plot_options = (
         pm3d => 'implicit map corners2color c1',
         surface => 0,
-        clut => 'sepia',
+        %color_options,
         cbtics => {format => "%g"},
         grid => 1);
     my $plot = PDL::Graphics::Gnuplot->new($terminal, %terminal_options, \%plot_options);
