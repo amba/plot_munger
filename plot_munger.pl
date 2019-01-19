@@ -15,12 +15,14 @@ my @commands;
 my $output_filename;
 my $force_output_file;
 my $palette = "bbwr";
+my $xrange;
 my $logscale;
 my $cbrange;
 
 GetOptions(
            "cmd|c=s@", => \@commands,
-           "output|o=s" => \$output_filename,
+    "output|o=s" => \$output_filename,
+    "xrange|x=s" => \$xrange,
     "force|f" => \$force_output_file,
     "logscale" => \$logscale,
     "palette=s" => \$palette,
@@ -39,10 +41,11 @@ sub state_help {
         say '
  Options:
   -h, --help                  give this help screen.
-  -c, --cmd                   transformation command, see below; can be provided
+  -c, --cmd=CMD               transformation command, see below; can be provided
                               multiple times
-  -o, --output                basename for output data file
+  -o, --output=FILE           basename for output data file
   -f, --force                 overwrite existing files
+  -x, --xrange=XMIN:XMAX      xrange for plots          
 
  Known commands:
   - dzdy      : partial differentiate
@@ -266,6 +269,16 @@ sub splot {
         my @cbrange = split /,/, $cbrange;
         say "cbrange: [@cbrange]";
         %plot_options = (%plot_options, cbrange => [@cbrange]); 
+    }
+    if ($xrange) {
+        if ($xrange !~ /(.+):(.+)/) {
+            die "xrange arge needs format 'x1:x2'";
+        }
+        my ($x1, $x2) = ($1, $2);
+        if (not looks_like_number($x1) or not looks_like_number($x2)) {
+            die "xrange limits must be numbers";
+        }
+        %plot_options = (%plot_options, xrange => [$x1, $x2]);
     }
     my $plot = PDL::Graphics::Gnuplot->new($terminal, %terminal_options, \%plot_options);
 
