@@ -16,6 +16,7 @@ my $output_filename;
 my $force_output_file;
 my $palette = "bbwr";
 my $xrange;
+my $yrange;
 my $logscale;
 my $cbrange;
 
@@ -23,6 +24,7 @@ GetOptions(
            "cmd|c=s@", => \@commands,
     "output|o=s" => \$output_filename,
     "xrange|x=s" => \$xrange,
+    "yrange|y=s" => \$yrange,
     "force|f" => \$force_output_file,
     "logscale" => \$logscale,
     "palette=s" => \$palette,
@@ -45,7 +47,8 @@ sub state_help {
                               multiple times
   -o, --output=FILE           basename for output data file
   -f, --force                 overwrite existing files
-  -x, --xrange=XMIN:XMAX      xrange for plots          
+  -x, --xrange=XMIN:XMAX      xrange for plots
+  -y, --yrange=YMIN:YMAX      yrange for plots       
 
  Known commands:
   - dzdy      : partial differentiate
@@ -279,6 +282,16 @@ sub splot {
             die "xrange limits must be numbers";
         }
         %plot_options = (%plot_options, xrange => [$x1, $x2]);
+    }
+    if ($yrange) {
+        if ($yrange !~ /(.+):(.+)/) {
+            die "yrange arge needs format 'x1:x2'";
+        }
+        my ($y1, $y2) = ($1, $2);
+        if (not looks_like_number($y1) or not looks_like_number($y2)) {
+            die "yrange limits must be numbers";
+        }
+        %plot_options = (%plot_options, yrange => [$y1, $y2]);
     }
     my $plot = PDL::Graphics::Gnuplot->new($terminal, %terminal_options, \%plot_options);
 
