@@ -131,13 +131,13 @@ my $x_block = $maps[$x_col-1];
 my $y_block = $maps[$y_col-1];
 my $z_block = $maps[$z_col-1];
 
-splot($x_block, $y_block, $z_block);
+my $plot1 = splot($x_block, $y_block, $z_block);
 
 ($x_block, $y_block, $z_block) = apply_commands(
     [@commands], $x_block, $y_block, $z_block
     );
 
-splot($x_block, $y_block, $z_block);
+my $plot2 = splot($x_block, $y_block, $z_block);
 
 if (defined $output_filename) {
     $output_filename .= '_' . join('_', @commands) . '.dat';
@@ -148,6 +148,9 @@ if (defined $output_filename) {
     write_output_datafile($output_filename, $x_block, $y_block, $z_block);
     
 }
+
+# keep process running. required for interactive features of plots
+sleep(100000);
 
 sub write_output_datafile {
     my ($filename, $x_block, $y_block, $z_block) = @_;
@@ -296,6 +299,7 @@ sub splot {
     my $plot = PDL::Graphics::Gnuplot->new($terminal, %terminal_options, \%plot_options);
 
     $plot->splot($x_block, $y_block, $z_block);
+    return $plot;
 }
 
 
