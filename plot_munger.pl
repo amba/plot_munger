@@ -59,6 +59,7 @@ sub state_help {
   - min=$min   : lower cutoff value 
   - max=$max   : upper cutoff value
   - add=$value : add value
+  - diff_log   : shortcut for the sequence dzdy, abs, G0, log10
 
  Example: Calculate ln(|dzdy|):
  plot_munger.pl -x 1 -y 2 -z 3 --cmd dzdy --cmd abs --cmd log data.dat
@@ -132,7 +133,7 @@ my $y_block = $maps[$y_col-1];
 my $z_block = $maps[$z_col-1];
 
 my $plot1 = splot($x_block, $y_block, $z_block);
-
+@commands = expand_command_shortcuts(@commands);
 ($x_block, $y_block, $z_block) = apply_commands(
     [@commands], $x_block, $y_block, $z_block
     );
@@ -188,6 +189,19 @@ sub write_output_datafile_block {
     print {$fh} "\n";
 }
 
+sub expand_command_shortcuts {
+    my @commands = @_;
+    my @output;
+    for my $cmd (@commands) {
+        if ($cmd eq 'diff_log') {
+            push @output, qw/dzdy abs G0 log10/;
+        }
+        else {
+            push @output, $cmd;
+        }
+    }
+    return @output;
+}
 
 sub apply_commands {
     my ($cmds, @blocks) = @_;
