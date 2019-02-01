@@ -15,6 +15,7 @@ my @commands;
 my $output_filename;
 my $force_output_file;
 my $palette = "bbwr";
+my $corners2color = "c1";
 my $xrange;
 my $yrange;
 my $logscale;
@@ -28,6 +29,8 @@ GetOptions(
     "force|f" => \$force_output_file,
     "logscale" => \$logscale,
     "palette=s" => \$palette,
+    "corners=s" => \$corners2color,
+    
     "cbrange=s" => \$cbrange,
     "help|h" => \$print_help,
     
@@ -276,7 +279,7 @@ sub splot {
         die "unknown palette '$palette'";
     }
     my %plot_options = (
-        pm3d => 'implicit map corners2color c1',
+        pm3d => "implicit map corners2color $corners2color",
         surface => 0,
         %color_options,
         cbtics => {format => "%g"},
