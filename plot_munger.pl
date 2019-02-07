@@ -54,7 +54,8 @@ sub state_help {
   -y, --yrange=YMIN:YMAX      yrange for plots       
 
  Known commands:
-  - dzdy      : partial differentiate
+  - dzdy       : partial derivative dz/dy
+  - dzdx       : partial derivative dz/dx
   - abs        : absolute value
   - log        : natural logarithm
   - log10      : base 10 logarithm
@@ -62,6 +63,7 @@ sub state_help {
   - min=$min   : lower cutoff value 
   - max=$max   : upper cutoff value
   - add=$value : add value
+  - factor=$value : multiply with factor (e.g -1)
   - diff_log   : shortcut for the sequence dzdy, abs, G0, log10
 
  Example: Calculate ln(|dzdy|):
@@ -228,11 +230,18 @@ sub apply_command {
         $y_block = $y_block->slice(':,1:');
         $z_block = $diff_z / $diff_y;
     }
+    elsif ($cmd eq 'dzdx') {
+        my $diff_x = diff_along_first_dim($x_block);
+        my $diff_z = diff_along_first_dim($z_block);
+        $x_block = $x_block->slice('1:,:');
+        $y_block = $y_block->slice('1:,:');
+        $z_block = $diff_z / $diff_x;
+    }
     elsif ($cmd eq 'G0') {
         my $G0 = 3.874045865410302e-05; # e**2 / h
         $z_block = $z_block / $G0;
     }
-    elsif ($cmd =~ /^(min|max|add)=(.*)/) {
+    elsif ($cmd =~ /^(min|max|add|factor)=(.*)/) {
         # value command
         $cmd = $1;
         my $value = $2;
@@ -250,6 +259,9 @@ sub apply_command {
         elsif ($cmd eq 'add') {
             $z_block = $z_block + $value;
         }
+        elsif ($cmd eq 'factor') {
+            $z_block = $z_block * $value;
+        }
     }
     else {
         die "unknown command $cmd";
@@ -262,7 +274,10 @@ sub diff_along_second_dim {
     return ($pdl->slice(':,1:') - $pdl->slice(':,:-2'));
 }
 
-
+sub diff_along_first_dim {
+    my $pdl = shift;
+    return ($pdl->slice('1:,:') - $pdl->slice(':-2,:'));
+}
 
 sub splot {
     my ($x_block, $y_block, $z_block) = @_;

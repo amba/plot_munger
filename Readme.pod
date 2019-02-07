@@ -1,0 +1,77 @@
+=pod
+
+=head1 plot_munger toolbox
+
+Tools for manipulation and plotting of gnuplot-style 3D datafiles
+
+=head2 Features
+
+=over
+
+=item * Simple commandline tool for plotting 3D data with colour plots
+
+=item * Manipulate data with a sequence of operation, e.g. numerical
+differentiation
+
+=item * Multitude of plot options: color scales, ranges, etc.
+
+=item * Extract traces along x- or y-axis
+
+=item * Write manipulated data to output datafile
+
+=back
+
+=head2 Installation
+
+To run the scripts, you need Perl version 5.10, or later, and several CPAN modules.
+
+=head3 Installation on Linux
+
+Download the pdfout_tools:
+
+ user $ git clone git://github.com/amba/plot_munger.git
+
+
+The following assumes a Debian-like Linux system.
+Install gnuplot:
+
+ root # apt-get install gnuplot5
+ 
+Install PDL and PDL::Graphics::Gnuplot:
+
+ root # apt-get install pdl libpdl-graphics-gnuplot-perl 
+
+
+You should now be able to run the tools
+
+ ./plot_munger.pl --help
+ ./plot_trace.pl --help
+
+=head3 Installation on Windows
+
+Download plot_munger from github: L<https://github.com/amba/plot_munger>.
+
+Install L<Strawberry Perl|http://strawberryperl.com> and
+L<gnuplot5|https://sourceforge.net/projects/gnuplot/>.
+
+You can now use the package manager provided by Strawberry Perl, C<cpanm>, to
+install PDL and PDL::Graphics::Gnuplot
+
+ $ cpanm PDL
+ $ cpanm PDL::Graphics::Gnuplot
+
+You should now be able to run the tools
+
+ perl plot_munger.pl --help
+ perl plot_trace.pl --help
+
+=head2 Quick Start
+
+TODO
+
+=head1 LICENCE
+
+plot_munger is Copyright (C) 2018-2019 by Simon Reinhardt.
+
+This is free software; you can redistribute it and/or modify it under the same
+terms as the Perl 5 programming language system itself.

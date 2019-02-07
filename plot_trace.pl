@@ -95,7 +95,7 @@ if (keys %unique_test != 3) {
 
 
 my $blocks = read_gnuplot_format($filename);
-$blocks = $blocks->dice([$x_col-1, $y_col-1, $z_col-1],'X','X');
+my $blocks_xyz = $blocks->dice([$x_col-1, $y_col-1, $z_col-1],'X','X');
 
 # dims of $blocks PDL: cols, line_in_block, block
 
@@ -116,27 +116,46 @@ $blocks = $blocks->dice([$x_col-1, $y_col-1, $z_col-1],'X','X');
 # (first piddle dim (x) goes to the right):
 
 
-my @dims = $blocks->dims;
+my @dims = $blocks_xyz->dims;
 say "dims: @dims";
 # assume regular data: x11 = x12 = x13, ...; y11 = y21 = y31, ...
 my $plot;
+my $output_block;
 if ($trace_index eq 'x') {
-    my $xvals = $blocks->slice('(0),(0),:')->unpdl;
+    my $xvals = $blocks_xyz->slice('(0),(0),:')->unpdl;
     my $best_index = find_closest_index($trace_value, $xvals);
 
-    my $yvals = $blocks->slice("(1),:,($best_index)");
-    my $zvals = $blocks->slice("(2),:,($best_index)");
+    my $yvals = $blocks_xyz->slice("(1),:,($best_index)");
+    my $zvals = $blocks_xyz->slice("(2),:,($best_index)");
     
     $plot = plot($yvals, $zvals);
+    # output 2D PDL with dims (col, trace_point)
+    $output_block = $blocks->slice(":,:,($best_index)");
 }
 elsif ($trace_index eq 'y') {
-    my $yvals = $blocks->slice('(1),:,(0)')->unpdl;
+    my $yvals = $blocks_xyz->slice('(1),:,(0)')->unpdl;
     my $best_index = find_closest_index($trace_value, $yvals);
-    my $xvals = $blocks->slice("(0),($best_index),:");
-    my $zvals = $blocks->slice("(2),($best_index),:");
+    my $xvals = $blocks_xyz->slice("(0),($best_index),:");
+    my $zvals = $blocks_xyz->slice("(2),($best_index),:");
     $plot = plot($xvals, $zvals);
-
+    $output_block = $blocks->slice(":,($best_index),:");
 }
+
+
+if (defined $output_filename) {
+    $output_filename .= "_trace_$trace_index=$trace_value.dat";
+    if (-e $output_filename and not $force_output_file) {
+        die "file $output_filename already exists";
+    }
+    warn "writing output to $output_filename\n";
+    open my $fh, '>', $output_filename
+        or die "cannot open file $output_filename: $!";
+
+    write_output_datafile_block($fh, $output_block);
+    
+}
+
+
 # keep process running. required for interactive features of plots
 sleep(100000);
 
@@ -160,29 +179,20 @@ sub find_closest_index {
 
 
 
-# if (defined $output_filename) {
-#     $output_filename .= '_' . join('_', @commands) . '.dat';
-#     if (-e $output_filename and not $force_output_file) {
-#         die "file $output_filename already exists";
+
+
+# sub write_output_datafile {
+#     my ($filename, $output_block) = @_;
+#     open my $fh, '>', $filename
+#         or die "cannot open file $filename: $!";
+
+#     print {$fh} "# x\ty\tz\n";
+#     my $blocks = cat($x_block, $y_block, $z_block)->xchg(0,2);
+#     my @blocks = dog $blocks;
+#     for my $block (@blocks) {
+#         write_output_datafile_block($fh, $block);
 #     }
-#     warn "writing output to $output_filename\n";
-#     write_output_datafile($output_filename, $x_block, $y_block, $z_block);
-    
 # }
-
-
-sub write_output_datafile {
-    my ($filename, $x_block, $y_block, $z_block) = @_;
-    open my $fh, '>', $filename
-        or die "cannot open file $filename: $!";
-
-    print {$fh} "# x\ty\tz\n";
-    my $blocks = cat($x_block, $y_block, $z_block)->xchg(0,2);
-    my @blocks = dog $blocks;
-    for my $block (@blocks) {
-        write_output_datafile_block($fh, $block);
-    }
-}
 
 sub write_output_datafile_block {
     my ($fh, $block) = @_;
