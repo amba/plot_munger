@@ -222,6 +222,7 @@ sub plot {
     my $terminal = 'qt';
     my %terminal_options = ();
     my %plot_options = (
+        title => "$trace_index=$trace_value",
         grid => 1);
 
     # if ($xrange) {
