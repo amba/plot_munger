@@ -35,7 +35,7 @@ GetOptions(
     or die "GetOptions";
 
 sub state_usage {
-    say "Usage: plot_munger.pl OPTIONS input-ascii-file.dat xcol:ycol:zcol x=value|y=value";
+    say "Usage: plot_trace.pl OPTIONS input-ascii-file.dat xcol:ycol:zcol x=value|y=value";
 }
 
 sub state_help {
