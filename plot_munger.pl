@@ -64,6 +64,8 @@ sub state_help {
   - max=$max   : upper cutoff value
   - add=$value : add value
   - factor=$value : multiply with factor (e.g -1)
+  - x_kernel=$a,$b,$c : convolute in x-direction with kernel [$a,$b, $c]
+  - y_kernel=$a,$b,$c : convolute in y-direction with kernel [$a,$b, $c]
   - diff_log   : shortcut for the sequence dzdy, abs, G0, log10
 
  Example: Calculate ln(|dzdy|):
@@ -226,16 +228,33 @@ sub apply_command {
     elsif ($cmd eq 'dzdy') {
         my $diff_y = diff_along_second_dim($y_block);
         my $diff_z = diff_along_second_dim($z_block);
-        $x_block = $x_block->slice(':,1:');
-        $y_block = $y_block->slice(':,1:');
+        $diff_y = $diff_y->slice(':,:-2');
+        $diff_z = $diff_z->slice(':,:-2');
+        $x_block = $x_block->slice(':,:-2');
+        $y_block = $y_block->slice(':,:-2');
         $z_block = $diff_z / $diff_y;
     }
     elsif ($cmd eq 'dzdx') {
         my $diff_x = diff_along_first_dim($x_block);
         my $diff_z = diff_along_first_dim($z_block);
-        $x_block = $x_block->slice('1:,:');
-        $y_block = $y_block->slice('1:,:');
+        $diff_x = $diff_x->slice(':-2,:');
+        $diff_z = $diff_z->slice(':-2,:');
+        $x_block = $x_block->slice(':-2,:');
+        $y_block = $y_block->slice(':-2,:');
         $z_block = $diff_z / $diff_x;
+    }
+    elsif ($cmd =~ '([xy])_kernel=(.+)') {
+        my $dir = $1;
+        my $kernel = $2;
+        $kernel = pdl(split /,/, $kernel);
+        $kernel /= $kernel->sumover;
+        if ($dir eq 'y') {
+            $z_block = convolution_along_second_dimension($z_block, $kernel);
+        }
+        else {
+            $z_block = convolution_along_first_dimension($z_block, $kernel);
+        }
+        
     }
     elsif ($cmd eq 'G0') {
         my $G0 = 3.874045865410302e-05; # e**2 / h
@@ -269,14 +288,27 @@ sub apply_command {
     return ($x_block, $y_block, $z_block);
 }
 
+sub convolution_along_first_dimension {
+    my ($pdl, $kernel) = @_;
+    return $pdl->conv1d($kernel,  {Boundary => 'reflect'});
+}
+
+sub convolution_along_second_dimension {
+    my ($pdl, $kernel) = @_;
+    $pdl = $pdl->xchg(0,1);
+    $pdl = convolution_along_first_dimension($pdl, $kernel);
+    return $pdl->xchg(0,1);
+}
+
 sub diff_along_second_dim {
     my $pdl  = shift;
-    return ($pdl->slice(':,1:') - $pdl->slice(':,:-2'));
+    $pdl = convolution_along_second_dimension($pdl, [1,-1]);
+    return $pdl;
 }
 
 sub diff_along_first_dim {
     my $pdl = shift;
-    return ($pdl->slice('1:,:') - $pdl->slice(':-2,:'));
+    return convolution_along_first_dimension($pdl, [1,-1]);
 }
 
 sub splot {
