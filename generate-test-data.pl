@@ -16,7 +16,7 @@ for my $i (1..$N) {
         else {
             $value = 0;
         }
-        say {$fh} "$i $j ", $value;
+        say {$fh} "$i $j $value $value";
     }
     print {$fh} "\n";
 }

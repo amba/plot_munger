@@ -66,7 +66,7 @@ if (not defined $filename) {
 
 my $xy_arg = $ARGV[1];
 if (not defined $xy_arg) {
-    die "need xcol:ycol:zcol argument";
+    die "need xcol:ycol argument";
 }
 
 if ($xy_arg !~ /^([0-9]+):([0-9]+)/) {
