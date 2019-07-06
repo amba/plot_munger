@@ -11,7 +11,6 @@ use PDL::Graphics::Gnuplot ();
 use Scalar::Util 'looks_like_number';
 
 my $print_help;
-my @commands;
 my $output_filename;
 my $force_output_file;
 my $palette = "bbwr";
@@ -21,7 +20,6 @@ my $logscale;
 my $cbrange;
 
 GetOptions(
-           "cmd|c=s@", => \@commands,
     "output|o=s" => \$output_filename,
     # "xrange|x=s" => \$xrange,
     # "yrange|y=s" => \$yrange,
