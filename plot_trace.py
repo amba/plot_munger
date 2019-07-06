@@ -94,11 +94,18 @@ z_vals = output_block[...,z_col]
 
 if args.output:
     np.savetxt(args.output, output_block, fmt="%.17g", header=header, comments='')
+
+if args.xrange:
+    plt.xlim([float(x) for x in args.xrange.split(':')])
+if args.yrange:
+    plt.ylim([float(x) for x in args.yrange.split(':')])
+plt.plot(x_vals, z_vals, marker="x", linestyle="", label="%s=%g" %( col_dict[trace_col], value))
+
     
-plt.plot(x_vals, z_vals, label="%s=%g" %( col_dict[trace_col], value))
 plt.grid()
 plt.xlabel(col_dict[x_col])
 plt.ylabel(col_dict[z_col])
 plt.legend()
+plt.ticklabel_format(style='sci', axis='both')
 plt.show(block=False)
 code.interact()
