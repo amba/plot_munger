@@ -7,11 +7,12 @@ import argparse
 import io
 import code
 import scipy.ndimage.filters
+import os.path
+
 if np.__version__ < '1.16.4':
     sys.exit("numpy version " + np.__version__ + " is too old")
     
 def open_3d_file(file):
-    print(np.__version__)
     fh = open(file, 'r')
     header = fh.readline().rstrip()
     contents = fh.read().rstrip()
@@ -29,8 +30,23 @@ def open_3d_file(file):
     return np.stack(arrays), header
 
 
+def save_3d_file(output_file, data, header):
+    fh = open(output_file, 'w')
+    fh.write(header + "\n")
+    shape = data.shape
+    for i in range(shape[0]):
+        block = data[i]
+        np.savetxt(fh, block, fmt="%.17g", delimiter="\t")
+        fh.write("\n")
+    fh.close()
+    
+
+
+
+
+    
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--command', action='append', help=" transformation command, see below; can be provided multiple times")
+parser.add_argument('-c', '--command', action='append', default=[], help=" transformation command, see below; can be provided multiple times")
 parser.add_argument('-o', '--output', help="basename for output data file")
 parser.add_argument('-f', '--force', action="store_true", help="overwrite existing files")
 parser.add_argument('-x', '--xrange', help="xrange for plots")
@@ -122,12 +138,26 @@ def apply_command(cmd, z_label, blocks):
         
 o_block, i_block, z_block, z_label = apply_commands(commands, z_label, [o_block, i_block, z_block])
 
+if args.output:
+    output_header = "# %s\t%s\t%s" % (col_dict[o_col], col_dict[i_col], "transformed")
+    output_filename = args.output + '_' + '_'.join(commands) + '.dat'
+    if not args.force:
+        if os.path.isfile(output_filename):
+            sys.exit("file %s already exists. Use -f option to overwrite" % output_filename)
+    print("writing output to ", output_filename)
+    data = np.stack([o_block, i_block, z_block], axis=-1)
+    save_3d_file(output_filename, data, output_header)
+
+    
 o_min = o_block[0,0]
 o_max = o_block[-1,0]
 i_min = i_block[0,0]
 i_max = i_block[0,-1]
 z_block = np.flip(z_block, axis=1) # imshow plots the first axis top to bottom
 z_block = np.swapaxes(z_block, 0, 1)
+
+    
+
 plt.imshow(z_block, aspect='auto', extent=[o_min, o_max, i_min, i_max],
            interpolation='none', cmap='seismic')
 plt.xlabel(col_dict[o_col])
