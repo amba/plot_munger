@@ -23,7 +23,8 @@ differentiation
 
 =head2 Installation
 
-To run the scripts, you need Perl version 5.10, or later, and several CPAN modules.
+To run the scripts, you need python3 with numpy (at least version 1.14.1),
+scipy, and matplotlib.
 
 =head3 Installation on Linux
 
@@ -33,37 +34,22 @@ Download the pdfout_tools:
 
 
 The following assumes a Debian-like Linux system.
-Install gnuplot:
+Install pip3:
 
- root # apt-get install gnuplot5
+ root # apt-get install pip3
  
-Install PDL and PDL::Graphics::Gnuplot:
+Install recent versions of numpy, scipy and matplotlib
 
- root # apt-get install pdl libpdl-graphics-gnuplot-perl 
-
+ user # pip3 install numpy scipy matplotlib
 
 You should now be able to run the tools
 
- ./plot_munger.pl --help
- ./plot_trace.pl --help
+ ./plot_munger.py --help
+ ./plot_trace.py --help
 
 =head3 Installation on Windows
 
-Download plot_munger from github: L<https://github.com/amba/plot_munger>.
-
-Install L<Strawberry Perl|http://strawberryperl.com> and
-L<gnuplot5|https://sourceforge.net/projects/gnuplot/>.
-
-You can now use the package manager provided by Strawberry Perl, C<cpanm>, to
-install PDL and PDL::Graphics::Gnuplot
-
- $ cpanm PDL
- $ cpanm PDL::Graphics::Gnuplot
-
-You should now be able to run the tools
-
- perl plot_munger.pl --help
- perl plot_trace.pl --help
+See e.g. L<https://solarianprogrammer.com/2017/02/25/install-numpy-scipy-matplotlib-python-3-windows/>
 
 =head2 Quick Start
 
@@ -73,5 +59,8 @@ TODO
 
 plot_munger is Copyright (C) 2018-2019 by Simon Reinhardt.
 
-This is free software; you can redistribute it and/or modify it under the same
-terms as the Perl 5 programming language system itself.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
