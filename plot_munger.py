@@ -9,7 +9,7 @@ import code
 import scipy.ndimage.filters
 import os.path
 
-if np.__version__ < '1.16.4':
+if np.__version__ < '1.14.1':
     sys.exit("numpy version " + np.__version__ + " is too old")
     
 def open_3d_file(file):
@@ -54,6 +54,7 @@ parser.add_argument('-y', '--yrange', help="yrange for plots")
 parser.add_argument('filename', help="input file")
 parser.add_argument('OIZ', help="outer:inner:zcol description")
 parser.add_argument('-g', '--grid', action="store_true", help="add grid in plot")
+parser.add_argument('--cmap', help='name of color map (default: seismic)', default='seismic')
 args = parser.parse_args()
 cols = [int(x)-1 for x in args.OIZ.split(':')]
 if len(cols) != len(set(cols)):
@@ -157,9 +158,8 @@ z_block = np.flip(z_block, axis=1) # imshow plots the first axis top to bottom
 z_block = np.swapaxes(z_block, 0, 1)
 
     
-
 plt.imshow(z_block, aspect='auto', extent=[o_min, o_max, i_min, i_max],
-           interpolation='none', cmap='seismic')
+           interpolation='none', cmap=args.cmap)
 plt.xlabel(col_dict[o_col])
 plt.ylabel(col_dict[i_col])
 if args.grid:
