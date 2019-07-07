@@ -149,11 +149,24 @@ if args.output:
     data = np.stack([o_block, i_block, z_block], axis=-1)
     save_3d_file(output_filename, data, output_header)
 
-    
+
+
+# need to flip the dimensions for imshow
 o_min = o_block[0,0]
 o_max = o_block[-1,0]
+if o_min > o_max:
+    o_max, o_min = o_min, o_max
+    z_block = np.flip(z_block, axis=0)
+    
 i_min = i_block[0,0]
 i_max = i_block[0,-1]
+if i_min > i_max:
+    i_max, i_min = i_min, i_max
+    z_block = np.flip(z_block, axis=1)
+
+
+
+# show outer axis left to right, inner axis bottom to top
 z_block = np.flip(z_block, axis=1) # imshow plots the first axis top to bottom
 z_block = np.swapaxes(z_block, 0, 1)
 

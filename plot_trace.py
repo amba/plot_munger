@@ -7,7 +7,7 @@ import argparse
 import io
 import code
 
-if np.__version__ < '1.16.4':
+if np.__version__ < '1.14.1':
     sys.exit("numpy version ", np.__version__, "is too old")
     
 def open_3d_file(file):
@@ -50,6 +50,8 @@ parser.add_argument('-y', '--yrange', help="yrange for plots")
 parser.add_argument('filename', help="input file")
 parser.add_argument('OIZ', help="outer:inner:zcol description")
 parser.add_argument('trace', help="o=value or i=value")
+parser.add_argument('--linear-fit', help="perform linear fit of data trace", action="store_true")
+
 args = parser.parse_args()
 print(args)
 cols = [int(x)-1 for x in args.OIZ.split(':')]
@@ -101,6 +103,14 @@ if args.yrange:
     plt.ylim([float(x) for x in args.yrange.split(':')])
 plt.plot(x_vals, z_vals, marker="x", linestyle="", label="%s=%g" %( col_dict[trace_col], value))
 
+if args.linear_fit:
+    coeff, V = np.polyfit(x_vals, z_vals, 1, cov=True)
+    print("coeffs of linear fit: ", coeff)
+    p = np.poly1d(coeff)
+    cov = np.sqrt(np.diag(V))
+    print("standard deviations: ", cov)
+    label = "%.3g(±%.2g) • %s %+.3g(±%.2g)" % (coeff[0], cov[0], col_dict[x_col], coeff[1], cov[1])
+    plt.plot(x_vals, p(x_vals), label=label)
     
 plt.grid()
 plt.xlabel(col_dict[x_col])
