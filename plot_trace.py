@@ -6,6 +6,7 @@ import sys
 import argparse
 import io
 import code
+import os.path
 
 if np.__version__ < '1.14.1':
     sys.exit("numpy version ", np.__version__, "is too old")
@@ -51,6 +52,8 @@ parser.add_argument('filename', help="input file")
 parser.add_argument('OIZ', help="outer:inner:zcol description")
 parser.add_argument('trace', help="o=value or i=value")
 parser.add_argument('--linear-fit', help="perform linear fit of data trace", action="store_true")
+parser.add_argument('-s', '--save-plot', help='save plot to filename. Suffix determines the format')
+
 
 args = parser.parse_args()
 print(args)
@@ -117,5 +120,10 @@ plt.xlabel(col_dict[x_col])
 plt.ylabel(col_dict[z_col])
 plt.legend()
 plt.ticklabel_format(style='sci', axis='both')
+
+if args.save_plot:
+    if not args.force and os.path.isfile(args.save_plot):
+        sys.exit("file %s already exists. Use -f option to overwrite" % args.save_plot)
+    plt.savefig(args.save_plot, bbox_inches='tight')
 plt.show(block=False)
 code.interact()

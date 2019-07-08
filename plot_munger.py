@@ -55,6 +55,8 @@ parser.add_argument('filename', help="input file")
 parser.add_argument('OIZ', help="outer:inner:zcol description")
 parser.add_argument('-g', '--grid', action="store_true", help="add grid in plot")
 parser.add_argument('--cmap', help='name of color map (default: seismic)', default='seismic')
+parser.add_argument('-s', '--save-plot', help='save plot to filename. Suffix determines the format')
+
 args = parser.parse_args()
 cols = [int(x)-1 for x in args.OIZ.split(':')]
 if len(cols) != len(set(cols)):
@@ -142,8 +144,7 @@ o_block, i_block, z_block, z_label = apply_commands(commands, z_label, [o_block,
 if args.output:
     output_header = "# %s\t%s\t%s" % (col_dict[o_col], col_dict[i_col], "transformed")
     output_filename = args.output + '_' + '_'.join(commands) + '.dat'
-    if not args.force:
-        if os.path.isfile(output_filename):
+    if not args.force and os.path.isfile(output_filename):
             sys.exit("file %s already exists. Use -f option to overwrite" % output_filename)
     print("writing output to ", output_filename)
     data = np.stack([o_block, i_block, z_block], axis=-1)
@@ -178,5 +179,9 @@ plt.ylabel(col_dict[i_col])
 if args.grid:
     plt.grid()
 plt.colorbar(format="%.1e", label=z_label)
+if args.save_plot:
+    if not args.force and os.path.isfile(args.save_plot):
+        sys.exit("file %s already exists. Use -f option to overwrite" % args.save_plot)
+    plt.savefig(args.save_plot, bbox_inches='tight')
 plt.show(block=False)
 code.interact()
