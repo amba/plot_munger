@@ -53,8 +53,8 @@ parser.add_argument('OIZ', help="outer:inner:zcol description")
 parser.add_argument('trace', help="o=value or i=value")
 parser.add_argument('--linear-fit', help="perform linear fit of data trace", action="store_true")
 parser.add_argument('-s', '--save-plot', help='save plot to filename. Suffix determines the format')
-
-
+parser.add_argument('--fft', action="store_true", help="calculate fft of data")
+parser.add_argument('--line', action='store_true')
 args = parser.parse_args()
 print(args)
 cols = [int(x)-1 for x in args.OIZ.split(':')]
@@ -97,14 +97,27 @@ print("output_block shape: ", output_block.shape)
 x_vals = output_block[...,x_col] 
 z_vals = output_block[...,z_col]
 
+
+if args.fft:
+    z_vals = np.abs(np.fft.rfft(z_vals))
+    x_vals = np.fft.rfftfreq(x_vals.shape[0], np.abs(x_vals[1]-x_vals[0]))
+    output_block = np.stack([x_vals, z_vals], axis = -1)
+    col_dict[z_col] = "|fft(%s)|" % col_dict[z_col]
+    col_dict[x_col] = "freq(%s)" % col_dict[x_col]
+    header = "# %s\t%s" % (col_dict[x_col], col_dict[z_col])
+
 if args.output:
+    if not args.force and os.path.isfile(args.output):
+        sys.exit("file %s already exists. Use -f option to overwrite" % args.output)
     np.savetxt(args.output, output_block, fmt="%.17g", header=header, comments='')
 
 if args.xrange:
     plt.xlim([float(x) for x in args.xrange.split(':')])
 if args.yrange:
     plt.ylim([float(x) for x in args.yrange.split(':')])
-plt.plot(x_vals, z_vals, marker="x", linestyle="", label="%s=%g" %( col_dict[trace_col], value))
+
+linestyle = "-" if args.line else ""
+plt.plot(x_vals, z_vals, marker="x", linestyle=linestyle, label="%s=%g" %( col_dict[trace_col], value))
 
 if args.linear_fit:
     coeff, V = np.polyfit(x_vals, z_vals, 1, cov=True)
