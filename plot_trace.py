@@ -166,21 +166,12 @@ def apply_command(cmd, x_vals, z_vals, x_label, z_label):
 x_vals, z_vals, x_label, z_label = apply_commands(args.command, x_vals, z_vals,
                                                   x_label, z_label)
 
-
-
-    
-# if args.fft:
-#     z_vals = np.abs(np.fft.rfft(z_vals))
-#     x_vals = np.fft.rfftfreq(x_vals.shape[0], np.abs(x_vals[1]-x_vals[0]))
-#     output_block = np.stack([x_vals, z_vals], axis = -1)
-#     col_dict[z_col] = "|fft(%s)|" % col_dict[z_col]
-#     col_dict[x_col] = "freq(%s)" % col_dict[x_col]
-#     header = "# %s\t%s" % (col_dict[x_col], col_dict[z_col])
-
-# if args.output:
-#     if not args.force and os.path.isfile(args.output):
-#         sys.exit("file %s already exists. Use -f option to overwrite" % args.output)
-#     np.savetxt(args.output, output_block, fmt="%.17g", header=header, comments='')
+if args.output:
+    if not args.force and os.path.isfile(args.output):
+        sys.exit("file %s already exists. Use -f option to overwrite" % args.output)
+    output_block = np.stack([x_vals, z_vals], axis=-1)
+    header = "# %s\t%s" % (x_label, z_label)
+    np.savetxt(args.output, output_block, fmt="%.17g", header=header, comments='')
 
 
 linestyle = "-" if args.line else ""
