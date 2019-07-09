@@ -187,12 +187,12 @@ linestyle = "-" if args.line else ""
 plt.plot(x_vals, z_vals, marker="x", linestyle=linestyle, label="%s=%g" %( col_dict[trace_col], value))
 
 def gaussian(x, *p):
-    A, x0, w = p
-    return A * np.exp(-1/2 * ((x-x0)/w)**2)
+    x0, w, A, a, b = p
+    return A * np.exp(-1/2 * ((x-x0)/w)**2) + a*x + b
 
 def lorentzian(x, *p):
-    A, x0, w = p
-    return A /(w**2 + (x-x0)**2)
+    x0, w, A, a, b = p
+    return A /(w**2 + (x-x0)**2) + a*x + b
 
 if args.fit:
     if args.fit == 'linear':
@@ -204,21 +204,19 @@ if args.fit:
         label = "%.3g(±%.2g) • %s %+.3g(±%.2g)" % (coeff[0], cov[0], col_dict[x_col], coeff[1], cov[1])
         plt.plot(x_vals, p(x_vals), label=label)
     elif args.fit == 'gaussian':
-        x0 = (x_vals[-1] + x_vals[0])/2
-        w = 1
-        A = 1
-        popt, pcov = scipy.optimize.curve_fit(gaussian, x_vals, z_vals, p0=[A, x0, w])
-        print("fit parameters: A=%g, x_0=%g, w=%g" % (popt[0], popt[1], popt[2]))
+        p0 = [(x_vals[-1] + x_vals[0])/2, 1, 1, 0, 0]
+        popt, pcov = scipy.optimize.curve_fit(gaussian, x_vals, z_vals, p0=p0)
+        print("fit parameters: ", popt)
         z_plot = gaussian(x_vals, *popt)
-        plt.plot(x_vals, z_plot, label='gaussian')
+        label = 'gaussian(x_0 = %.4g, σ = %.3g)' % (popt[0], popt[1])
+        plt.plot(x_vals, z_plot, label=label)
     elif args.fit == 'lorentzian':
-        x0 = (x_vals[-1] + x_vals[0])/2
-        w = 1
-        A = 1
-        popt, pcov = scipy.optimize.curve_fit(lorentzian, x_vals, z_vals, p0=[A, x0, w])
-        print("fit parameters: A=%g, x_0=%g, w=%g" % (popt[0], popt[1], popt[2]))
+        p0 = [(x_vals[-1] + x_vals[0])/2, 1, 1, 0, 0]
+        popt, pcov = scipy.optimize.curve_fit(lorentzian, x_vals, z_vals, p0=p0)
+        print("fit parameters: ", popt)
         z_plot = lorentzian(x_vals, *popt)
-        plt.plot(x_vals, z_plot, label='lorentzian')
+        label = 'lorentzian(x_0 = %.4g, w = %.3g)' % (popt[0], popt[1])
+        plt.plot(x_vals, z_plot, label=label)
     else:
         sys.exit("unknown fit command %s" % args.fit)
 plt.grid()
