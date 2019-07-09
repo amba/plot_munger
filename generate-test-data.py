@@ -19,14 +19,14 @@ def save_3d_file(output_file, data, header):
         fh.write("\n")
     fh.close()
     
-N_x = 100
-N_y = 100
-x_min, x_max, y_min, y_max=[0, 10, 20, 0]
+N_x = 500
+N_y = 500
+x_min, x_max, y_min, y_max=[0, 30, 30, 0]
 x = np.linspace(x_min, x_max, N_x)
 y = np.linspace(y_min, y_max, N_y)
 xv, yv = np.meshgrid(x,y)
 
-zv = xv+yv#np.sin(xv - yv)
+zv = np.sin(xv - yv)
 
 data = np.stack([yv, xv, zv],axis=-1)
 save_3d_file(args.output, data , "# x\ty\tz")
