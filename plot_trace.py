@@ -154,7 +154,7 @@ def apply_command(cmd, x_vals, z_vals, x_label, z_label):
         z_vals = value * z_vals
         z_label = ("%g • " % value) + z_label
     elif cmd == 'fft':
-        z_vals = np.fft.rfft(z_vals)
+        z_vals = np.abs(np.fft.rfft(z_vals))
         x_vals = np.fft.rfftfreq(x_vals.shape[0], np.abs(x_vals[1]-x_vals[0]))
         z_label = "|fft(%s)|" % z_label
         x_label = "freq(%s)" % x_label
