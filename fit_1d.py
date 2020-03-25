@@ -51,7 +51,7 @@ parser.add_argument('-s', '--save-plot', help='save plot to filename. Suffix det
 parser.add_argument('--line', action='store_true')
 
 # fit functions
-parser.add_argument('--fit', help="fit type: 'linear', 'gaussian', 'lorentzian'") 
+parser.add_argument('--fit', help="fit type: 'linear', 'gaussian', 'RLC'") 
 
 args = parser.parse_args()
 print(args)
@@ -141,7 +141,6 @@ if args.output:
         sys.exit("file %s already exists. Use -f option to overwrite" % args.output)
     output_block = np.stack([x_vals, y_vals], axis=-1)
     header = "# %s\t%s" % (x_label, y_label)
-    np.savetxt(args.output, output_block, fmt="%.17g", header=header, comments='')
 
 
 linestyle = "-" if args.line else ""
@@ -151,9 +150,23 @@ def gaussian(x, *p):
     x0, w, A, a, b = p
     return A * np.exp(-1/2 * ((x-x0)/w)**2) + a*x + b
 
-def lorentzian(x, *p):
-    x0, w, A, a, b = p
-    return A /(w**2 + (x-x0)**2) + a*x + b
+# |Y(f)| =  1/|Z(f)| for RLC circuit with parallel Cp
+def RLC_Cp(x, *p):
+    x0, Q, a, Cp = p
+    omega = 2 * np.pi * x
+    omega_0 = 2 * np.pi * x0
+    Y1 = a / (1/Q + 1j * (omega**2 - omega_0**2) / (omega * omega_0))
+    Y2 = 1j * omega * Cp  # parallel capacitance
+    return np.abs(Y1 + Y2)    
+
+def RLC_Cp_Rp(x, *p):
+    x0, Q, a, Cp, Rp = p
+    omega = 2 * np.pi * x
+    omega_0 = 2 * np.pi * x0
+    Y1 = a / (1/Q + 1j * (omega**2 - omega_0**2) / (omega * omega_0))
+    Y2 = 1j * omega * Cp / (1 + 1j * omega * Cp * Rp) # parallel capacitance and resistance
+    return np.abs(Y1 + Y2)    
+
 
 if args.fit:
     if args.fit == 'linear':
@@ -163,29 +176,49 @@ if args.fit:
         cov = np.sqrt(np.diag(V))
         print("standard deviations: ", cov)
         label = "%.3g(±%.2g) • %s %+.3g(±%.2g)" % (coeff[0], cov[0], col_dict[x_col], coeff[1], cov[1])
-        plt.plot(x_vals, p(x_vals), label=label)
+        fit_vals = p(x_vals)
+        plt.plot(x_vals, fit_vals, label=label)
     elif args.fit == 'gaussian':
         p0 = [(x_vals[-1] + x_vals[0])/2, 1, 1, 0, 0]
         popt, pcov = scipy.optimize.curve_fit(gaussian, x_vals, y_vals, p0=p0)
         print("fit parameters: ", popt)
-        y_plot = gaussian(x_vals, *popt)
+        fit_vals = gaussian(x_vals, *popt)
         label = 'gaussian(x_0 = %.4g, σ = %.3g)' % (popt[0], popt[1])
-        plt.plot(x_vals, y_plot, label=label)
-    elif args.fit == 'lorentzian':
-        p0 = [(x_vals[-1] + x_vals[0])/2, 1, 1, 0, 0]
-        popt, pcov = scipy.optimize.curve_fit(lorentzian, x_vals, y_vals, p0=p0)
+        plt.plot(x_vals, fit_vals, label=label)
+    elif args.fit == 'RLC':
+        # p0 = f0, Q, Amplitude, Cp
+        f0 = 10700
+        Q = 200
+        R = 1/2.4e-13
+        a0 = 1/(R*Q)
+        Cp = 10e-12
+        
+        p0 = [f0, Q, a0, Cp]
+        popt, pcov = scipy.optimize.curve_fit(RLC_Cp, x_vals, y_vals, p0=p0)
         print("fit parameters: ", popt)
-        y_plot = lorentzian(x_vals, *popt)
-        label = 'lorentzian(x_0 = %.4g, w = %.3g)' % (popt[0], popt[1])
-        plt.plot(x_vals, y_plot, label=label)
+        fit_vals = RLC_Cp(x_vals, *popt)
+        R = 1/(popt[1] * popt[2])
+        label = (
+    'RLC(f_0 = %.1f Hz, Q = %.1f, R = %.3g Ohm, Cp = %.3g F)'
+        % (popt[0], popt[1], R, popt[3]))
+        plt.plot(x_vals, fit_vals, label=label)
+        ylabel = '|1/Z|'
     else:
         sys.exit("unknown fit command %s" % args.fit)
+    if args.output:
+        fit_vals = np.expand_dims(fit_vals, axis=1)
+        output_block = np.concatenate([output_block, fit_vals], axis=1)
+        header += "\tfit"
+        
 plt.grid()
 plt.xlabel(x_label)
 plt.ylabel(y_label)
 plt.legend()
 plt.ticklabel_format(style='sci', axis='both')
 
+if args.output:
+   np.savetxt(args.output, output_block, fmt="%.17g", header=header, comments='')
+   
 if args.save_plot:
     if not args.force and os.path.isfile(args.save_plot):
         sys.exit("file %s already exists. Use -f option to overwrite" % args.save_plot)
