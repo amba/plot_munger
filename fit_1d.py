@@ -51,7 +51,7 @@ parser.add_argument('-s', '--save-plot', help='save plot to filename. Suffix det
 parser.add_argument('--line', action='store_true')
 
 # fit functions
-parser.add_argument('--fit', help="fit type: 'linear', 'gaussian', 'RLC'") 
+parser.add_argument('--fit', help="fit type: 'linear', 'gaussian', 'RLC', 'TIA'") 
 
 args = parser.parse_args()
 print(args)
@@ -167,6 +167,9 @@ def RLC_Cp_Rp(x, *p):
     Y2 = 1j * omega * Cp / (1 + 1j * omega * Cp * Rp) # parallel capacitance and resistance
     return np.abs(Y1 + Y2)    
 
+def TIA(f, *p):
+    Rf, f0, sigma = p
+    return Rf * f0**2 / np.sqrt((f**2 - f0**2)**2 + f**2 * f0**2 / sigma**2)
 
 if args.fit:
     if args.fit == 'linear':
@@ -203,6 +206,16 @@ if args.fit:
         % (popt[0], popt[1], R, popt[3]))
         plt.plot(x_vals, fit_vals, label=label)
         ylabel = '|1/Z|'
+    elif args.fit == 'TIA':
+        f0 = 1e6
+        sigma = 0.01
+        Rf = 1.6
+        p0 = [Rf, f0, sigma]
+        popt, pcov = scipy.optimize.curve_fit(TIA, x_vals, y_vals, p0=p0, maxfev=2000)
+        fit_vals = TIA(x_vals, *popt)
+        label = "TIA(Rf = %g, f0 = %g, sigma = %g, f0*sigma = %g, f0/sigma = %g)" % (popt[0], popt[1], popt[2], popt[1]*popt[2], popt[1] / popt[2])
+        
+        plt.plot(x_vals, fit_vals, label=label)
     else:
         sys.exit("unknown fit command %s" % args.fit)
     if args.output:
