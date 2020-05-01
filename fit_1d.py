@@ -44,7 +44,7 @@ parser.add_argument('-o', '--output', help="basename for output data file")
 parser.add_argument('-f', '--force', action="store_true", help="overwrite existing files")
 
 # commands
-parser.add_argument('-c', '--command', action='append', default=[], help=" transformation commands: abs, log, log10, xmin=..., xmax=..., ymin=..., ymax=..., add=..., factor=..., fft")
+parser.add_argument('-c', '--command', action='append', default=[], help=" transformation commands: abs, log, log10, xmin=..., xmax=..., ymin=..., ymax=..., add=..., factor=..., fft, diff")
 
 # plot options
 parser.add_argument('-s', '--save-plot', help='save plot to filename. Suffix determines the format')
@@ -128,7 +128,9 @@ def apply_command(cmd, x_vals, y_vals, x_label, y_label):
         x_vals = np.fft.rfftfreq(x_vals.shape[0], np.abs(x_vals[1]-x_vals[0]))
         y_label = "|fft(%s)|" % y_label
         x_label = "freq(%s)" % x_label
-    
+    elif cmd == 'diff':
+        y_vals = np.gradient(y_vals) / np.gradient(x_vals)
+        y_label = "d %s / d %s" % (y_label, x_label)
     else:
         sys.exit("unknown command " + cmd)
     return x_vals, y_vals, x_label, y_label
