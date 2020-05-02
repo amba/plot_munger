@@ -152,23 +152,32 @@ def gaussian(x, *p):
     x0, w, A, a, b = p
     return A * np.exp(-1/2 * ((x-x0)/w)**2) + a*x + b
 
-# |Y(f)| =  1/|Z(f)| for RLC circuit with parallel Cp
+
+# 1/Z of R-L-C circuit Y = 1/(R + iωL + 1/(iωC))
+#
+# omega_0 = 1/sqrt(L * C)
+# Q = 1/R * sqrt(L/C)
+# max_val = 1/R
+
+def RLC_Y(omega, omega_0, Q, max_val):
+    return (max_val_max / Q) / (1/Q + 1j * (omega**2 - omega_0**2) / (omega * omega_0))
+
+def damped_resonator(x, *p):
+    x0, Q, max_val = p
+    omega = 2 * np.pi * x
+    omega_0 = 2 * np.pi * x0
+    return np.abs(RLC_Y(omega, omega_0, Q, max_val))
+
+# Butterworth van-Dyke model
 def RLC_Cp(x, *p):
-    x0, Q, a, Cp = p
+    x0, Q, max_val, p_val = p
     omega = 2 * np.pi * x
     omega_0 = 2 * np.pi * x0
-    Y1 = a / (1/Q + 1j * (omega**2 - omega_0**2) / (omega * omega_0))
-    Y2 = 1j * omega * Cp  # parallel capacitance
-    return np.abs(Y1 + Y2)    
+    Y1 = RLC_Y(omega, omega_0, Q, max_val)
+    Y2 = 1j * omega / omega_0 * p_val
+    return np.abs(Y1 + Y2)
 
-def RLC_Cp_Rp(x, *p):
-    x0, Q, a, Cp, Rp = p
-    omega = 2 * np.pi * x
-    omega_0 = 2 * np.pi * x0
-    Y1 = a / (1/Q + 1j * (omega**2 - omega_0**2) / (omega * omega_0))
-    Y2 = 1j * omega * Cp / (1 + 1j * omega * Cp * Rp) # parallel capacitance and resistance
-    return np.abs(Y1 + Y2)    
-
+    
 def TIA(f, *p):
     Rf, f0, sigma = p
     return Rf * f0**2 / np.sqrt((f**2 - f0**2)**2 + f**2 * f0**2 / sigma**2)
@@ -193,21 +202,18 @@ if args.fit:
     elif args.fit == 'RLC':
         # p0 = f0, Q, Amplitude, Cp
         f0 = 10700
-        Q = 200
-        R = 1/2.4e-13
-        a0 = 1/(R*Q)
-        Cp = 10e-12
-        
-        p0 = [f0, Q, a0, Cp]
+        Q = 1000
+        max_val = 120
+        p_val = 20
+        p0 = [f0, Q, max_val, p_val]
         popt, pcov = scipy.optimize.curve_fit(RLC_Cp, x_vals, y_vals, p0=p0)
         print("fit parameters: ", popt)
         fit_vals = RLC_Cp(x_vals, *popt)
-        R = 1/(popt[1] * popt[2])
         label = (
-    'RLC(f_0 = %.1f Hz, Q = %.1f, R = %.3g Ohm, Cp = %.3g F)'
-        % (popt[0], popt[1], R, popt[3]))
+    'RLC(f_0 = %.1f Hz, Q = %.1f, res-gain-max = %.1f, parallel = %.1f)'
+        % (popt[0], popt[1], popt[2], popt[3]))
         plt.plot(x_vals, fit_vals, label=label)
-        ylabel = '|1/Z|'
+        ylabel = 'gain'
     elif args.fit == 'TIA':
         f0 = 1e6
         sigma = 0.01
