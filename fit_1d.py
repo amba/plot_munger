@@ -160,7 +160,7 @@ def gaussian(x, *p):
 # max_val = 1/R
 
 def RLC_Y(omega, omega_0, Q, max_val):
-    return (max_val_max / Q) / (1/Q + 1j * (omega**2 - omega_0**2) / (omega * omega_0))
+    return (max_val / Q) / (1/Q + 1j * (omega**2 - omega_0**2) / (omega * omega_0))
 
 def damped_resonator(x, *p):
     x0, Q, max_val = p
@@ -177,10 +177,21 @@ def RLC_Cp(x, *p):
     Y2 = 1j * omega / omega_0 * p_val
     return np.abs(Y1 + Y2)
 
+
+# return sensitvity V_0 / I_D
+def TIA(x, *p):
+    Rf, Cf, Rg, Cg, A_OL, omega_A = p
+    omega = 2 * np.pi * x
+    s = 1j * omega
+    A = A_OL * omega_A / (s + omega_A)
+    Zf = 1/(1/Rf + s * Cf)
+    Zg = 1/(1/Rg + s* Cg)
     
-def TIA(f, *p):
-    Rf, f0, sigma = p
-    return Rf * f0**2 / np.sqrt((f**2 - f0**2)**2 + f**2 * f0**2 / sigma**2)
+    # V_0 / I_D
+    return np.abs(-Zf / (1 + ((1 + Zf / Zg) / A)))
+    
+    
+
 
 if args.fit:
     if args.fit == 'linear':
@@ -201,10 +212,10 @@ if args.fit:
         plt.plot(x_vals, fit_vals, label=label)
     elif args.fit == 'RLC':
         # p0 = f0, Q, Amplitude, Cp
-        f0 = 10700
-        Q = 1000
-        max_val = 120
-        p_val = 20
+        f0 = 32780
+        Q = 4200
+        max_val = 108
+        p_val = 24.8
         p0 = [f0, Q, max_val, p_val]
         popt, pcov = scipy.optimize.curve_fit(RLC_Cp, x_vals, y_vals, p0=p0)
         print("fit parameters: ", popt)
