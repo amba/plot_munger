@@ -89,6 +89,9 @@ def apply_command(cmd, x_vals, y_vals, x_label, y_label):
     if cmd in 'abs log log10'.split():
         y_vals = getattr(np, cmd)(y_vals)
         y_label = cmd + '(' + y_label + ')'
+    elif cmd == 'db_to_s':
+        y_vals = 10**(y_vals / 20)
+        y_label = 'db_to_s(' + y_label + ')'
     elif cmd.startswith('xmin='):
         tmp,value = cmd.split('=')
         value = float(value)
@@ -211,11 +214,12 @@ if args.fit:
         label = 'gaussian(x_0 = %.4g, σ = %.3g)' % (popt[0], popt[1])
         plt.plot(x_vals, fit_vals, label=label)
     elif args.fit == 'RLC':
-        # p0 = f0, Q, Amplitude, Cp
-        f0 = 32780
-        Q = 4200
-        max_val = 108
-        p_val = 24.8
+        i_max = np.argmax(y_vals)
+        f0 = x_vals[i_max]
+        max_val = y_vals[i_max]
+        Q = np.abs(f0 / (x_vals[-1] - x_vals[0]))
+        print("Q = ", Q)
+        p_val = (y_vals[-1] + y_vals[0]) / 2
         p0 = [f0, Q, max_val, p_val]
         popt, pcov = scipy.optimize.curve_fit(RLC_Cp, x_vals, y_vals, p0=p0)
         print("fit parameters: ", popt)
